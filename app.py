@@ -1,90 +1,51 @@
-"""Flask web app for the RAG medical chatbot (Hugging Face embeddings + Pinecone + Groq)."""
-import os
-import threading
+"""Flask backend for the cosine-similarity medical chatbot.
 
-from dotenv import load_dotenv
+Run:  python app.py      then open http://localhost:5000
+"""
+import os
+import re
+import sys
+
 from flask import Flask, jsonify, render_template, request
 
-load_dotenv()
+from chatbot import CosineEngine, EngineError
 
-INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "medicalbot")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
-TOP_K = int(os.getenv("TOP_K", "3"))
+BASE = os.path.dirname(os.path.abspath(__file__))
+PDF_PATH = os.environ.get("MEDBOT_PDF", os.path.join(BASE, "data", "KML_Medical_book.pdf"))
+METHOD = os.environ.get("MEDBOT_METHOD", "tfidf")          # "tfidf" (default) or "embed"
+MIN_SCORE = float(os.environ.get("MEDBOT_MIN_SCORE", "0.15"))
+DISCLAIMER = "Educational use only. This is text from a medical reference book, not medical advice."
+EMERGENCY = re.compile(r"chest pain|can'?t breathe|cannot breathe|difficulty breathing|stroke|suicid|"
+                       r"kill myself|overdose|unconscious|severe bleeding|poison", re.I)
 
 app = Flask(__name__)
 
-_rag = None
-_lock = threading.Lock()
-
-
-class SetupError(Exception):
-    """A problem the user can fix (missing key, missing index...). Shown in the chat window."""
-
-
-def build_rag():
-    """Create the retriever + LLM chain once. Raises SetupError with a clear message if setup is incomplete."""
-    missing = [k for k in ("PINECONE_API_KEY", "GROQ_API_KEY") if not os.getenv(k)]
-    if missing:
-        raise SetupError("Missing " + " and ".join(missing) + ". Copy .env.example to .env, fill it in, then restart.")
-
-    from pinecone import Pinecone
-    from langchain_core.output_parsers import StrOutputParser
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_groq import ChatGroq
-    from langchain_pinecone import PineconeVectorStore
-    from src.helper import download_hugging_face_embeddings
-    from src.prompt import system_prompt
-
-    if not Pinecone(api_key=os.environ["PINECONE_API_KEY"]).has_index(INDEX_NAME):
-        raise SetupError(f"Pinecone index '{INDEX_NAME}' does not exist yet. Run:  python store_index.py")
-
-    docsearch = PineconeVectorStore.from_existing_index(index_name=INDEX_NAME, embedding=download_hugging_face_embeddings())
-    retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": TOP_K})
-    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
-    prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
-    chain = prompt | llm | StrOutputParser()
-
-    def answer(question: str):
-        docs = retriever.invoke(question)
-        context = "\n\n".join(d.page_content for d in docs)
-        text = chain.invoke({"context": context, "input": question})
-        sources = sorted({d.metadata.get("page") for d in docs if d.metadata.get("page")})
-        return text, sources
-
-    return answer
-
-
-def get_rag():
-    global _rag
-    with _lock:
-        if _rag is None:
-            _rag = build_rag()      # not cached on failure, so fixing .env + retrying works after restart
-        return _rag
+try:
+    engine = CosineEngine(PDF_PATH, os.path.join(BASE, "data"), METHOD)
+except EngineError as e:
+    sys.exit(f"[MedBot] {e}")
 
 
 @app.get("/")
 def index():
-    return render_template("chat.html")
+    return render_template("index.html")
 
 
 @app.get("/health")
 def health():
-    return jsonify(status="ok")
+    return jsonify(status="ok", passages=len(engine.chunks), method=METHOD)
 
 
-@app.post("/get")
+@app.post("/api/chat")
 def chat():
-    question = (request.form.get("msg") or (request.get_json(silent=True) or {}).get("msg") or "").strip()
+    data = request.get_json(silent=True) or {}
+    question = str(data.get("message") or "").strip()[:500]
     if not question:
         return jsonify(error="Please type a question."), 400
-    try:
-        text, pages = get_rag()(question)
-    except SetupError as e:
-        return jsonify(error=str(e)), 503
-    except Exception as e:      # network / API errors
-        return jsonify(error=f"Something went wrong while answering ({type(e).__name__}). Check your API keys and internet connection."), 500
-    return jsonify(answer=text, pages=pages)
+    results = engine.search(question, top_k=3, min_score=MIN_SCORE)
+    return jsonify(matched=bool(results), results=results, disclaimer=DISCLAIMER,
+                   emergency=bool(EMERGENCY.search(question)))
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8080")), debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)

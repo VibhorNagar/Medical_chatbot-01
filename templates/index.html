@@ -9,13 +9,13 @@
 <body>
   <header>
     <span class="logo">🩺</span>
-    <div><h1>Medical ChatBot</h1><small>Answers from a medical encyclopedia (RAG)</small></div>
+    <div><h1>Medical ChatBot</h1><small>Cosine-similarity search over a medical encyclopedia</small></div>
   </header>
 
   <main id="chat" aria-live="polite"></main>
 
   <form id="chat-form" autocomplete="off">
-    <input id="msg" type="text" placeholder="Ask about a condition, symptom, test or treatment…" required autofocus>
+    <input id="msg" type="text" maxlength="500" placeholder="Ask about a condition, symptom, test or treatment…" required autofocus>
     <button type="submit" id="send">Send</button>
   </form>
   <p class="disclaimer">Educational use only. Not a substitute for professional medical advice. In an emergency, call your local emergency number.</p>

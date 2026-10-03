@@ -6,14 +6,21 @@ header{display:flex;align-items:center;gap:12px;padding:14px 20px;color:#fff;bac
 header h1{margin:0;font-size:18px}header small{opacity:.85}.logo{font-size:26px}
 #chat{flex:1;overflow-y:auto;width:100%;max-width:820px;margin:0 auto;padding:20px}
 .msg{display:flex;margin:12px 0}.msg.user{justify-content:flex-end}
-.bubble{max-width:88%;padding:12px 14px;border-radius:14px;line-height:1.5;white-space:pre-wrap;background:var(--card);border:1px solid var(--line)}
+.bubble{max-width:90%;padding:12px 14px;border-radius:14px;line-height:1.5;background:var(--card);border:1px solid var(--line)}
 .user .bubble{background:var(--brand);border-color:var(--brand);color:#fff}
 .bubble.error{background:var(--err);color:var(--errink);border-color:transparent}
 .bubble.typing{color:var(--muted);font-style:italic}
-.src{display:block;margin-top:8px;font-size:12px;color:var(--muted)}
+.meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.alert{background:var(--err);color:var(--errink);padding:8px 10px;border-radius:8px;margin-bottom:8px;font-size:14px}
+details{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;color:var(--brand);font-size:14px}
+details p{margin:8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--brand);color:var(--brand);background:transparent;padding:4px 10px;border-radius:999px;font-size:13px;cursor:pointer}
+.chip:hover{background:var(--brand);color:#fff}
 form{display:flex;gap:8px;width:100%;max-width:820px;margin:0 auto;padding:12px 20px 6px}
 input{flex:1;padding:12px 14px;font-size:15px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);outline:none}
 input:focus{border-color:var(--brand2)}
-button{padding:0 20px;font-size:15px;border:0;border-radius:12px;color:#fff;background:var(--brand);cursor:pointer}
-button:disabled{opacity:.6;cursor:wait}
+button.send,#send{padding:0 20px;font-size:15px;border:0;border-radius:12px;color:#fff;background:var(--brand);cursor:pointer}
+#send:disabled{opacity:.6;cursor:wait}
 .disclaimer{max-width:820px;width:100%;margin:0 auto;padding:0 20px 14px;font-size:12px;color:var(--muted)}

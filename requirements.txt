@@ -1,12 +1,6 @@
 flask
-python-dotenv
+numpy
+scikit-learn
 pypdf
-sentence-transformers
-pinecone
-langchain
-langchain-core
-langchain-community
-langchain-text-splitters
-langchain-huggingface
-langchain-pinecone
-langchain-groq
+# Optional (only for MEDBOT_METHOD=embed):
+# sentence-transformers
